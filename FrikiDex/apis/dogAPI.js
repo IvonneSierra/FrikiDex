@@ -1,11 +1,12 @@
 import axios from "axios";
 
 export async function getDogs() {
-  const res = await axios.get("https://api.thedogapi.com/v1/images/search?limit=8");
-  return res.data.map((d, i) => ({
+  const res = await axios.get("https://dog.ceo/api/breeds/image/random/8");
+  return res.data.message.map((url, i) => ({
     id: `dog-${i}`,
-    title: "Dog #" + (i + 1),
-    image: d.url,
+    title: "Perro #" + (i + 1),
+    image: url,
     tag: "Perros",
+    description: "Los mejores amigos del hombre, directamente desde Dog API. 🐕"
   }));
 }
