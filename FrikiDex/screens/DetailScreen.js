@@ -34,33 +34,35 @@ export default function DetailScreen({ route, navigation }) {
           <Text style={styles.tag}>{item.tag}</Text>
         </View>
 
-        {/* Descripción del juego */}
+        {/* Descripción */}
         <Text style={styles.description}>
           {item.description
             ? item.description
             : "No hay descripción disponible para este elemento."}
         </Text>
 
-       
+        {/* SOLO mostrar estas secciones si el tag es "Pokémon" */}
+        {item.tag === "Pokémon" && (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Modos de Juego</Text>
+              <View style={styles.row}>
+                <Text style={[styles.chip, styles.typeAction]}>Campaña</Text>
+                <Text style={[styles.chip, styles.typeAdventure]}>Multijugador</Text>
+                <Text style={[styles.chip, styles.typeStrategy]}>Cooperativo</Text>
+              </View>
+            </View>
 
-        {/* Tipos y debilidades como chips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Modos de Juego</Text>
-          <View style={styles.row}>
-            <Text style={[styles.chip, styles.typeAction]}>Campaña</Text>
-            <Text style={[styles.chip, styles.typeAdventure]}>Multijugador</Text>
-            <Text style={[styles.chip, styles.typeStrategy]}>Cooperativo</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dificultades</Text>
-          <View style={styles.row}>
-            <Text style={[styles.chip, styles.diffEasy]}>Fácil</Text>
-            <Text style={[styles.chip, styles.diffNormal]}>Normal</Text>
-            <Text style={[styles.chip, styles.diffHard]}>Difícil</Text>
-          </View>
-        </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Dificultades</Text>
+              <View style={styles.row}>
+                <Text style={[styles.chip, styles.diffEasy]}>Fácil</Text>
+                <Text style={[styles.chip, styles.diffNormal]}>Normal</Text>
+                <Text style={[styles.chip, styles.diffHard]}>Difícil</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         {/* Botón de volver */}
         <TouchableOpacity
@@ -75,7 +77,7 @@ export default function DetailScreen({ route, navigation }) {
   );
 }
 
-// 🎨 Estilos inspirados en la Pokédex
+// 🎨 Estilos
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
@@ -116,32 +118,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  infoCard: {
-    backgroundColor: "#2ca8e0",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
-  infoTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  label: {
-    color: "#cce7f0",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  value: {
-    color: "#fff",
-    fontSize: 15,
-  },
   section: {
     marginBottom: 20,
   },
@@ -163,7 +139,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  // Tipos o modos
+  // Modos
   typeAction: { backgroundColor: "#4CAF50" },
   typeAdventure: { backgroundColor: "#9C27B0" },
   typeStrategy: { backgroundColor: "#03A9F4" },
