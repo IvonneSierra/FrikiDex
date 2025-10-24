@@ -1,49 +1,110 @@
-// apis/catsApi.js
 import axios from "axios";
 
-export async function getCats() {
+const CAT_API_KEY = "live_tu_api_key_aqui"; // Opcional pero recomendado para más requests
+
+export async function getCats(limit = 15) {
   try {
-    const [breedsResponse, imagesResponse] = await Promise.all([
-      axios.get("https://api.thecatapi.com/v1/breeds?limit=15"),
-      axios.get("https://api.thecatapi.com/v1/images/search?limit=15")
-    ]);
+    const breedsResponse = await axios.get(
+      `https://api.thecatapi.com/v1/breeds?limit=${limit}`,
+      {
+        headers: CAT_API_KEY ? { 'x-api-key': CAT_API_KEY } : {}
+      }
+    );
     
-    console.log("Breeds data:", breedsResponse.data);  // Log para depurar
-    console.log("Images data:", imagesResponse.data);  // Log para depurar
+    // Obtener imágenes específicas de cada raza
+    const catsWithImages = await Promise.all(
+      breedsResponse.data.map(async (breed, i) => {
+        let imageUrl = `https://picsum.photos/seed/cat${i}/400/300`;
+        
+        // Intentar obtener imagen real de la raza
+        try {
+          if (breed.reference_image_id) {
+            const imgRes = await axios.get(
+              `https://api.thecatapi.com/v1/images/${breed.reference_image_id}`
+            );
+            imageUrl = imgRes.data.url;
+          }
+        } catch (error) {
+          console.log(`No se pudo obtener imagen para ${breed.name}`);
+        }
+        
+        // Construir descripción detallada
+        const origin = breed.origin || "Desconocido";
+        const description = breed.description || 
+          `${breed.name} es una raza de gato originaria de ${origin}.`;
+        
+        // Temperamento formateado
+        const temperaments = breed.temperament 
+          ? breed.temperament.split(", ") 
+          : [];
+        
+        // Subtitle con info clave
+        const subtitle = `${origin} • ${breed.life_span || "Vida desconocida"}`;
+        
+        return {
+          id: breed.id || `cat-${i}`,
+          title: breed.name,
+          subtitle: subtitle,
+          image: imageUrl,
+          description: description,
+          tag: "Gatos",
+          
+          // Información de origen
+          origin: origin,
+          countryCode: breed.country_code || null,
+          countryCodes: breed.country_codes || null,
+          
+          // Características físicas
+          weight: breed.weight?.metric || "Desconocido",
+          weightImperial: breed.weight?.imperial || null,
+          lifeSpan: breed.life_span || "Desconocido",
+          
+          // Temperamento y personalidad
+          temperament: breed.temperament || "No especificado",
+          temperaments: temperaments,
+          
+          // Niveles de características (0-5)
+          adaptability: breed.adaptability || 0,
+          affectionLevel: breed.affection_level || 0,
+          childFriendly: breed.child_friendly || 0,
+          dogFriendly: breed.dog_friendly || 0,
+          energyLevel: breed.energy_level || 0,
+          grooming: breed.grooming || 0,
+          healthIssues: breed.health_issues || 0,
+          intelligence: breed.intelligence || 0,
+          sheddingLevel: breed.shedding_level || 0,
+          socialNeeds: breed.social_needs || 0,
+          strangerFriendly: breed.stranger_friendly || 0,
+          vocalisation: breed.vocalisation || 0,
+          
+          // Características especiales
+          experimental: breed.experimental === 1,
+          hairless: breed.hairless === 1,
+          natural: breed.natural === 1,
+          rare: breed.rare === 1,
+          rex: breed.rex === 1,
+          suppressedTail: breed.suppressed_tail === 1,
+          shortLegs: breed.short_legs === 1,
+          hypoallergenic: breed.hypoallergenic === 1,
+          
+          // Nombres alternativos
+          altNames: breed.alt_names || null,
+          
+          // Links externos
+          wikipediaUrl: breed.wikipedia_url || null,
+          cfaUrl: breed.cfa_url || null,
+          vetstreetUrl: breed.vetstreet_url || null,
+          vcahospitalsUrl: breed.vcahospitals_url || null,
+          
+          // Imagen de referencia
+          referenceImageId: breed.reference_image_id || null,
+        };
+      })
+    );
     
-    return breedsResponse.data.map((breed, i) => {
-      // Construye la descripción de forma segura, evitando "undefined"
-      const origin = breed.origin ? `originaria de ${breed.origin}` : '';
-      const temperament = breed.temperament ? `Temperamento: ${breed.temperament}.` : '';
-      const lifeSpan = breed.life_span ? `Expectativa de vida: ${breed.life_span} años.` : '';
-      const weight = breed.weight?.metric ? `Peso: ${breed.weight.metric} kg.` : '';
-      
-      const description = `${breed.name} es una raza de gato ${origin}. ${temperament} ${lifeSpan} ${weight}`.trim();
-      
-      return {
-        id: `cat-${i}`,
-        title: breed.name,
-        image: imagesResponse.data[i]?.url || `https://picsum.photos/seed/cat${i}/400/300`,
-        description: description || "Descripción no disponible para esta raza.",  // Fallback si todo falla
-        tag: "Gatos",
-      };
-    });
+    return catsWithImages;
   } catch (error) {
     console.log("Error fetching cats:", error);
-    // Fallback: intenta obtener imágenes y usa descripción genérica
-    try {
-      const response = await axios.get("https://api.thecatapi.com/v1/images/search?limit=8");
-      console.log("Fallback images:", response.data);  // Log para depurar
-      return response.data.map((d, i) => ({
-        id: `cat-${i}`,
-        title: "Gato #" + (i + 1),
-        image: d.url,
-        description: "Un adorable felino compañero. Los gatos son mascotas independientes y cariñosas.",
-        tag: "Gatos",
-      }));
-    } catch (fallbackError) {
-      console.log("Fallback error:", fallbackError);
-      return [];  // Devuelve array vacío si todo falla
-    }
+    return [];
   }
 }
