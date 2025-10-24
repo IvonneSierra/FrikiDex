@@ -11,8 +11,13 @@ export const useTeams = () => {
 export const TeamsProvider = ({ children }) => {
   const [teams, setTeams] = useState([]);
 
-  const addTeam = (name) => {
-    const newTeam = { id: Date.now().toString(), name, pokemons: [] };
+  const addTeam = (name, category) => {
+    const newTeam = { 
+      id: Date.now().toString(), 
+      name, 
+      category,
+      members: [] 
+    };
     setTeams((prev) => [...prev, newTeam]);
   };
 
@@ -26,27 +31,41 @@ export const TeamsProvider = ({ children }) => {
     setTeams((prev) => prev.filter((team) => team.id !== id));
   };
 
-  const addPokemonToTeam = (teamId, pokemon) => {
+  const addMemberToTeam = (teamId, member) => {
     setTeams((prev) =>
       prev.map((team) => {
         if (team.id === teamId) {
-          if (team.pokemons.length >= 6) return team; // máximo 6
-          if (team.pokemons.some((p) => p.id === pokemon.id)) return team; // evitar duplicados
-          return { ...team, pokemons: [...team.pokemons, pokemon] };
+          // Verificar que el miembro pertenezca a la categoría del equipo
+          const normalizedMemberTag = member.tag?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const normalizedTeamCategory = team.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          
+          if (normalizedMemberTag !== normalizedTeamCategory) {
+            console.log("No se puede agregar: categoría incorrecta");
+            return team;
+          }
+
+          if (team.members.length >= 6) return team; // máximo 6
+          if (team.members.some((p) => p.id === member.id)) return team; // evitar duplicados
+          return { ...team, members: [...team.members, member] };
         }
         return team;
       })
     );
   };
 
-  const removePokemonFromTeam = (teamId, pokemonId) => {
+  const removeMemberFromTeam = (teamId, memberId) => {
     setTeams((prev) =>
       prev.map((team) =>
         team.id === teamId
-          ? { ...team, pokemons: team.pokemons.filter((p) => p.id !== pokemonId) }
+          ? { ...team, members: team.members.filter((p) => p.id !== memberId) }
           : team
       )
     );
+  };
+
+  // Obtener equipos por categoría
+  const getTeamsByCategory = (category) => {
+    return teams.filter(team => team.category === category);
   };
 
   return (
@@ -56,8 +75,9 @@ export const TeamsProvider = ({ children }) => {
         addTeam,
         renameTeam,
         removeTeam,
-        addPokemonToTeam,
-        removePokemonFromTeam,
+        addMemberToTeam,
+        removeMemberFromTeam,
+        getTeamsByCategory
       }}
     >
       {children}

@@ -41,7 +41,33 @@ export async function getGames(limit = 100) {
     
     const response = await axios.post(
       `https://corsproxy.io/?${encodeURIComponent('https://api.igdb.com/v4/games')}`,
-      `fields name,cover.url,summary,rating; limit ${limit}; where rating > 70; sort rating desc;`,
+      // Agregando más campos de la API
+      `fields 
+        name,
+        cover.url,
+        summary,
+        rating,
+        rating_count,
+        release_dates.date,
+        release_dates.platform.name,
+        genres.name,
+        platforms.name,
+        involved_companies.company.name,
+        involved_companies.developer,
+        involved_companies.publisher,
+        aggregated_rating,
+        aggregated_rating_count,
+        screenshots.url,
+        videos.video_id,
+        game_modes.name,
+        player_perspectives.name,
+        themes.name,
+        first_release_date,
+        storyline,
+        url;
+      limit ${limit}; 
+      where rating > 70; 
+      sort rating desc;`,
       {
         headers: {
           'Client-ID': CLIENT_ID,
@@ -58,7 +84,30 @@ export async function getGames(limit = 100) {
         ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}`
         : 'https://images.igdb.com/igdb/image/upload/t_cover_big/nocover.png',
       description: game.summary || "Sin descripción disponible",
+      storyline: game.storyline || null,
       rating: game.rating ? Math.round(game.rating) : null,
+      ratingCount: game.rating_count || 0,
+      aggregatedRating: game.aggregated_rating ? Math.round(game.aggregated_rating) : null,
+      aggregatedRatingCount: game.aggregated_rating_count || 0,
+      releaseDate: game.first_release_date 
+        ? new Date(game.first_release_date * 1000).toLocaleDateString('es-ES')
+        : null,
+      genres: game.genres?.map(g => g.name) || [],
+      platforms: game.platforms?.map(p => p.name) || [],
+      developers: game.involved_companies
+        ?.filter(ic => ic.developer)
+        .map(ic => ic.company.name) || [],
+      publishers: game.involved_companies
+        ?.filter(ic => ic.publisher)
+        .map(ic => ic.company.name) || [],
+      gameModes: game.game_modes?.map(gm => gm.name) || [],
+      perspectives: game.player_perspectives?.map(pp => pp.name) || [],
+      themes: game.themes?.map(t => t.name) || [],
+      screenshots: game.screenshots?.map(s => 
+        `https:${s.url.replace('t_thumb', 't_screenshot_big')}`
+      ) || [],
+      videos: game.videos?.map(v => `https://www.youtube.com/watch?v=${v.video_id}`) || [],
+      officialUrl: game.url || null,
       tag: "Juegos",
     }));
   } catch (error) {

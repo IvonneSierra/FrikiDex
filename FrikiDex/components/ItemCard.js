@@ -16,14 +16,16 @@ import { useNavigation } from "@react-navigation/native";
 
 export default function ItemCard({ item }) {
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { teams, addPokemonToTeam, removePokemonFromTeam } = useTeams();
+  const { teams, addMemberToTeam, removeMemberFromTeam } = useTeams();
   const navigation = useNavigation();
 
   const [modalVisible, setModalVisible] = useState(false);
 
   const isItemFavorite = isFavorite(item.id, item.tag);
+  
+  // CORRECCIÓN: Usar team.members en lugar de team.pokemons
   const isItemInAnyTeam = teams.some((team) =>
-    team.pokemons.some((p) => p.id === item.id)
+    team.members.some((p) => p.id === item.id)
   );
 
   const handleHeartPress = () => {
@@ -31,29 +33,61 @@ export default function ItemCard({ item }) {
   };
 
   const handleTeamPress = () => {
-    // ⚠️ Verificar si el ítem es un Pokémon
-    if (item.tag.toLowerCase() !== "pokémon" && item.tag.toLowerCase() !== "pokemon") {
+    // ✅ Permitir Pokémon, Marvel y Star Wars
+    const normalizedTag = item.tag?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const allowedTags = ["pokemon", "marvel", "star wars"];
+    
+    if (!allowedTags.includes(normalizedTag)) {
       Alert.alert(
         "🚫 No permitido",
-        "Solo puedes agregar Pokémon a los equipos."
+        "Solo puedes agregar Pokémon, Marvel y Star Wars a los equipos."
       );
       return;
     }
 
-    if (teams.length === 0) {
-      Alert.alert("⚠️ No hay equipos", "Primero debes crear un equipo.");
+    // Filtrar equipos compatibles con la categoría del item
+    const compatibleTeams = teams.filter(team => {
+      const normalizedTeamCategory = team.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return normalizedTeamCategory === normalizedTag;
+    });
+
+    if (compatibleTeams.length === 0) {
+      Alert.alert(
+        "⚠️ No hay equipos", 
+        `No tienes equipos de ${item.tag}. Primero debes crear un equipo en la pestaña de Equipos.`
+      );
       return;
     }
 
-    // Mostrar modal con lista de equipos Pokémon
+    // Mostrar modal con lista de equipos compatibles
     setModalVisible(true);
   };
 
   const handleSelectTeam = (team) => {
+    // Verificar que el equipo sea compatible con el item
+    const normalizedTag = item.tag?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedTeamCategory = team.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    if (normalizedTag !== normalizedTeamCategory) {
+      Alert.alert(
+        "❌ Error",
+        `No puedes agregar ${item.tag} a un equipo de ${team.category}.`
+      );
+      return;
+    }
+
     if (isItemInAnyTeam) {
-      removePokemonFromTeam(team.id, item.id);
+      // Encontrar en qué equipo está y removerlo
+      const teamWithItem = teams.find(t => 
+        t.members.some(m => m.id === item.id)
+      );
+      if (teamWithItem) {
+        removeMemberFromTeam(teamWithItem.id, item.id);
+        Alert.alert("✅ Removido", `${item.title || item.name} fue removido del equipo.`);
+      }
     } else {
-      addPokemonToTeam(team.id, item);
+      addMemberToTeam(team.id, item);
+      Alert.alert("✅ Agregado", `${item.title || item.name} fue agregado al equipo ${team.name}.`);
     }
     setModalVisible(false);
   };
@@ -61,6 +95,13 @@ export default function ItemCard({ item }) {
   const handlePress = () => {
     navigation.navigate("Details", { item });
   };
+
+  // Obtener equipos compatibles para el modal
+  const compatibleTeams = teams.filter(team => {
+    const normalizedTag = item.tag?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedTeamCategory = team.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return normalizedTag === normalizedTeamCategory;
+  });
 
   return (
     <>
@@ -76,7 +117,7 @@ export default function ItemCard({ item }) {
         />
         <View style={styles.content}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.title}>{item.title || item.name}</Text>
             {item.subtitle ? (
               <Text style={styles.subtitle}>{item.subtitle}</Text>
             ) : null}
@@ -100,7 +141,7 @@ export default function ItemCard({ item }) {
                 />
               </TouchableOpacity>
 
-              {/* 👥 Equipos */}
+              {/* 👥 Equipos (solo mostrar para categorías permitidas) */}
               <TouchableOpacity
                 onPress={handleTeamPress}
                 style={styles.iconButton}
@@ -120,20 +161,40 @@ export default function ItemCard({ item }) {
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Agregar a equipo</Text>
+            <Text style={styles.modalTitle}>
+              {isItemInAnyTeam ? "Remover de equipo" : "Agregar a equipo"}
+            </Text>
+            <Text style={styles.modalSubtitle}>{item.title || item.name}</Text>
 
-            <FlatList
-              data={teams}
-              keyExtractor={(team) => team.id.toString()}
-              renderItem={({ item: team }) => (
-                <TouchableOpacity
-                  style={styles.teamButton}
-                  onPress={() => handleSelectTeam(team)}
-                >
-                  <Text style={styles.teamText}>{team.name}</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {compatibleTeams.length > 0 ? (
+              <FlatList
+                data={compatibleTeams}
+                keyExtractor={(team) => team.id.toString()}
+                style={styles.teamsList}
+                renderItem={({ item: team }) => {
+                  const isInThisTeam = team.members.some(m => m.id === item.id);
+                  return (
+                    <TouchableOpacity
+                      style={[
+                        styles.teamButton,
+                        isInThisTeam && styles.teamButtonRemove
+                      ]}
+                      onPress={() => handleSelectTeam(team)}
+                    >
+                      <Text style={styles.teamText}>{team.name}</Text>
+                      <Text style={styles.teamCategory}>{team.category}</Text>
+                      <Text style={styles.teamAction}>
+                        {isInThisTeam ? "❌ Remover" : "✅ Agregar"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            ) : (
+              <Text style={styles.noTeamsText}>
+                No hay equipos de {item.tag} disponibles.
+              </Text>
+            )}
 
             <TouchableOpacity
               style={styles.closeButton}
@@ -188,30 +249,65 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
+    maxHeight: "70%",
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 5,
     color: "#333",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  teamsList: {
+    width: "100%",
+    marginBottom: 10,
   },
   teamButton: {
     backgroundColor: "#FCB495",
-    padding: 10,
+    padding: 12,
     borderRadius: 10,
     marginVertical: 5,
     width: "100%",
     alignItems: "center",
   },
+  teamButtonRemove: {
+    backgroundColor: "#FF6B6B",
+  },
   teamText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
+  },
+  teamCategory: {
+    color: "#fff",
+    opacity: 0.8,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  teamAction: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
+  },
+  noTeamsText: {
+    textAlign: "center",
+    color: "#666",
+    fontStyle: "italic",
+    marginVertical: 20,
   },
   closeButton: {
     marginTop: 10,
+    padding: 10,
   },
   closeButtonText: {
     color: "#FCB495",
     fontWeight: "bold",
+    fontSize: 16,
   },
 });
