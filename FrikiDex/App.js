@@ -4,19 +4,25 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { View, ActivityIndicator } from "react-native";
+
+// Contextos
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { TeamsProvider } from "./context/TeamsContext";
 
-// 🔹 Importar Pantallas
+// Pantallas
 import HomeScreen from "./screens/HomeScreen";
 import FavoritesScreen from "./screens/FavoritesScreen";
 import DetailScreen from "./screens/DetailScreen";
 import TeamsScreen from "./screens/TeamsScreen";
+import LoginScreen from "./screens/LoginScreen";
+import RegisterScreen from "./screens/RegisterScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// 🔹 Tabs principales
+// 🔹 Tabs principales (solo accesibles si el usuario está autenticado)
 function TabNavigator() {
   return (
     <Tab.Navigator
@@ -49,24 +55,53 @@ function TabNavigator() {
   );
 }
 
-// 🔹 Stack global (permite abrir Details desde cualquier tab)
+// 🔹 Control de flujo (decide entre login o app principal)
+function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#fff",
+        }}
+      >
+        <ActivityIndicator size="large" color="#FCB495" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {user ? (
+        <>
+          <Stack.Screen name="Tabs" component={TabNavigator} />
+          <Stack.Screen name="Details" component={DetailScreen} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
+
+// 🔹 App principal con todos los contextos
 export default function App() {
   return (
-    <FavoritesProvider>
-      <TeamsProvider>
-        <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {/* Tabs principales */}
-            <Stack.Screen name="Tabs" component={TabNavigator} />
-            {/* Pantalla de detalles accesible desde cualquier tab */}
-            <Stack.Screen
-              name="Details"
-              component={DetailScreen}
-              options={{ headerShown: true, title: "Detalles" }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </TeamsProvider>
-    </FavoritesProvider>
+    <AuthProvider>
+      <FavoritesProvider>
+        <TeamsProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </TeamsProvider>
+      </FavoritesProvider>
+    </AuthProvider>
   );
 }

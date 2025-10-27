@@ -1,71 +1,77 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { db } from "../firebase";
+import { ref, set, onValue, remove, update } from "firebase/database";
+import { useAuth } from "./AuthContext";
 
 const TeamsContext = createContext();
 
-export const useTeams = () => {
-  const context = useContext(TeamsContext);
-  if (!context) throw new Error("useTeams debe usarse dentro de TeamsProvider");
-  return context;
-};
+export const useTeams = () => useContext(TeamsContext);
 
 export const TeamsProvider = ({ children }) => {
+const { user } = useAuth();
+const userId = user ? user.uid : "guest";
+
   const [teams, setTeams] = useState([]);
 
+  // 🔹 Cargar equipos del usuario logueado
+  useEffect(() => {
+    if (!user) return; // Espera al login
+    const teamsRef = ref(db, `teams/${user.uid}`);
+    const unsubscribe = onValue(teamsRef, (snapshot) => {
+      const data = snapshot.val();
+      setTeams(data ? Object.values(data) : []);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // 🔹 Agregar equipo
   const addTeam = (name, category) => {
-    const newTeam = { 
-      id: Date.now().toString(), 
-      name, 
-      category,
-      members: [] 
-    };
-    setTeams((prev) => [...prev, newTeam]);
+    if (!user) return;
+    const newTeam = { id: Date.now().toString(), name, category, members: [] };
+    const teamRef = ref(db, `teams/${user.uid}/${newTeam.id}`);
+    set(teamRef, newTeam);
   };
 
+  // 🔹 Renombrar equipo
   const renameTeam = (id, newName) => {
-    setTeams((prev) =>
-      prev.map((team) => (team.id === id ? { ...team, name: newName } : team))
-    );
+    if (!user) return;
+    update(ref(db, `teams/${user.uid}/${id}`), { name: newName });
   };
 
+  // 🔹 Eliminar equipo
   const removeTeam = (id) => {
-    setTeams((prev) => prev.filter((team) => team.id !== id));
+    if (!user) return;
+    remove(ref(db, `teams/${user.uid}/${id}`));
   };
 
+  // 🔹 Agregar miembro
   const addMemberToTeam = (teamId, member) => {
+    if (!user) return;
     setTeams((prev) =>
       prev.map((team) => {
         if (team.id === teamId) {
-          // Verificar que el miembro pertenezca a la categoría del equipo
-          const normalizedMemberTag = member.tag?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          const normalizedTeamCategory = team.category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          
-          if (normalizedMemberTag !== normalizedTeamCategory) {
-            console.log("No se puede agregar: categoría incorrecta");
-            return team;
-          }
-
-          if (team.members.length >= 6) return team; // máximo 6
-          if (team.members.some((p) => p.id === member.id)) return team; // evitar duplicados
-          return { ...team, members: [...team.members, member] };
+          const updated = { ...team, members: [...team.members, member] };
+          set(ref(db, `teams/${user.uid}/${team.id}`), updated);
+          return updated;
         }
         return team;
       })
     );
   };
 
+  // 🔹 Eliminar miembro
   const removeMemberFromTeam = (teamId, memberId) => {
-    setTeams((prev) =>
-      prev.map((team) =>
+    if (!user) return;
+    setTeams((prev) => {
+      const updated = prev.map((team) =>
         team.id === teamId
           ? { ...team, members: team.members.filter((p) => p.id !== memberId) }
           : team
-      )
-    );
-  };
-
-  // Obtener equipos por categoría
-  const getTeamsByCategory = (category) => {
-    return teams.filter(team => team.category === category);
+      );
+      const updatedTeam = updated.find((t) => t.id === teamId);
+      if (updatedTeam) set(ref(db, `teams/${user.uid}/${teamId}`), updatedTeam);
+      return updated;
+    });
   };
 
   return (
@@ -77,7 +83,6 @@ export const TeamsProvider = ({ children }) => {
         removeTeam,
         addMemberToTeam,
         removeMemberFromTeam,
-        getTeamsByCategory
       }}
     >
       {children}
