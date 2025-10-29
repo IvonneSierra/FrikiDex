@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { View, ActivityIndicator } from "react-native";
 
-// Contextos
+// Contextos - VERIFICA QUE NO HAYA DUPLICADOS
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { TeamsProvider } from "./context/TeamsContext";
@@ -18,17 +18,18 @@ import DetailScreen from "./screens/DetailScreen";
 import TeamsScreen from "./screens/TeamsScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
+import ProfileScreen from "./screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// 🔹 Tabs principales (solo accesibles si el usuario está autenticado)
+// 🔹 Tabs principales
 function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#FCB495",
+        tabBarActiveTintColor: "#3F3D56",
         tabBarInactiveTintColor: "#999",
         tabBarStyle: { backgroundColor: "#fff" },
         tabBarIcon: ({ color, size }) => {
@@ -43,6 +44,11 @@ function TabNavigator() {
             case "Equipos":
               iconName = "people";
               break;
+            case "Perfil":
+              iconName = "person";
+              break;
+            default:
+              iconName = "help";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -51,12 +57,33 @@ function TabNavigator() {
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Favoritos" component={FavoritesScreen} />
       <Tab.Screen name="Equipos" component={TeamsScreen} />
+      <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
 
-// 🔹 Control de flujo (decide entre login o app principal)
-function RootNavigator() {
+// 🔹 Stack de autenticación
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// 🔹 Stack principal
+function AppStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={TabNavigator} />
+      <Stack.Screen name="Detail" component={DetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// 🔹 Navegación condicional
+function Navigation() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -74,34 +101,20 @@ function RootNavigator() {
     );
   }
 
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        <>
-          <Stack.Screen name="Tabs" component={TabNavigator} />
-          <Stack.Screen name="Details" component={DetailScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-        </>
-      )}
-    </Stack.Navigator>
-  );
+  return user ? <AppStack /> : <AuthStack />;
 }
 
-// 🔹 App principal con todos los contextos
+// 🔹 App principal
 export default function App() {
   return (
     <AuthProvider>
-      <FavoritesProvider>
-        <TeamsProvider>
+      <TeamsProvider>
+        <FavoritesProvider>
           <NavigationContainer>
-            <RootNavigator />
+            <Navigation />
           </NavigationContainer>
-        </TeamsProvider>
-      </FavoritesProvider>
+        </FavoritesProvider>
+      </TeamsProvider>
     </AuthProvider>
   );
 }

@@ -1,7 +1,7 @@
 // firebase.js
-import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 
 // 🔹 Configuración correcta del proyecto Firebase
 const firebaseConfig = {
@@ -15,12 +15,11 @@ const firebaseConfig = {
   measurementId: "G-YGW0QR8NLF",
 };
 
-// 🔹 Inicializar Firebase
+// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 
-// 🔹 Inicializar servicios
-const db = getDatabase(app);
-const auth = getAuth(app);
+// Inicializar servicios de Firebase
+export const auth = getAuth(app);
+export const db = getDatabase(app);
 
-// 🔹 Exportar
-export { app, db, auth };
+export default app;

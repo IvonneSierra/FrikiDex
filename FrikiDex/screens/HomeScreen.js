@@ -130,9 +130,13 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Encabezado */}
+      {/* Encabezado con Logo */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Frikidex</Text>
+        <Image 
+          source={require('../assets/logo-frikidex.png')} // Ajusta la ruta según tu estructura
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Buscador */}
@@ -227,19 +231,22 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingTop: 40 },
 
-  header: { alignItems: "center", marginBottom: 10 },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#FCB495",
-    textTransform: "uppercase",
+  header: { 
+    alignItems: "center", 
+    marginBottom: 10,
+    paddingHorizontal: 20,
+  },
+  logo: {
+    width: 200, // Ajusta según el tamaño de tu logo
+    height: 70, // Ajusta según el tamaño de tu logo
+    top: 10
   },
 
   search: {
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FCB495",
+    borderColor: "#3F3D56",
     margin: 16,
     padding: 10,
   },
@@ -248,7 +255,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FCB495",
+    backgroundColor: "#3F3D56",
     marginHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
