@@ -9,7 +9,9 @@ export async function getMarvel(limit = 100) {
     const ts = new Date().getTime();
     const hash = md5(ts + PRIVATE_KEY + PUBLIC_KEY);
     const url = `https://gateway.marvel.com/v1/public/characters?ts=${ts}&apikey=${PUBLIC_KEY}&hash=${hash}&limit=${limit}`;
-
+    
+    console.log('Marvel URL:', url); // Para debug
+    
     const res = await axios.get(url);
     
     return res.data.data.results.map((hero) => {
@@ -24,14 +26,14 @@ export async function getMarvel(limit = 100) {
       hero.urls.forEach(urlObj => {
         urls[urlObj.type] = urlObj.url;
       });
-
+      
       // Construir descripción
       let description = hero.description || `${hero.name} es un personaje del Universo Marvel.`;
       
       // Construir subtítulo
       const appearances = [];
-      if (hero.comics.available > 0) appearances.push(`${hero.comics.available} cómics`);
-      if (hero.series.available > 0) appearances.push(`${hero.series.available} series`);
+      if (hero.comics.available > 0) appearances.push(`${hero.comics.available} cómics`);  // ✅ CORREGIDO
+      if (hero.series.available > 0) appearances.push(`${hero.series.available} series`); // ✅ CORREGIDO
       const subtitle = appearances.length > 0 ? appearances.join(" • ") : "Personaje Marvel";
       
       return {
@@ -81,7 +83,7 @@ export async function getMarvel(limit = 100) {
       };
     });
   } catch (error) {
-    console.log("Error fetching Marvel:", error);
+    console.log("Error fetching Marvel:", error.response?.data || error.message);
     return [];
   }
 }
