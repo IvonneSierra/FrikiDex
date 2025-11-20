@@ -62,6 +62,8 @@ Aplicación móvil desarrollada en **React Native + Firebase**, diseñada para e
 │   ├── RegisterScreen.js
 │   └── ProfileScreen.js
 └── components/
+---
+
 ## 🛠️ Tecnologías Utilizadas
 
 ### **Frontend**
